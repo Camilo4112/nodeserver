@@ -19,28 +19,41 @@ let tasks = [
   }
 ];
 
-router.post('/create', (req, res) => {
-  const { id, description, completed } = req.body;
-  const newTask = { id, description, completed };
+// Middleware para validar solicitudes POST y PUT
+const validateTaskData = (req, res, next) => {
+  const { description, completed } = req.body;
+  if (req.method === 'POST' && (!description || typeof completed !== 'boolean')) {
+    return res.status(400).json({ error: 'Información de tarea no válida' });
+  }
+  if (req.method === 'PUT' && (Object.keys(req.body).length === 0 || !description || typeof completed !== 'boolean')) {
+    return res.status(400).json({ error: 'Información de tarea no válida' });
+  }
+  next();
+};
+
+router.post('/create', validateTaskData, (req, res) => {
+  const { description, completed } = req.body;
+  const newTask = { id: String(tasks.length + 1), description, completed };
   tasks.push(newTask);
   res.json(newTask);
 });
 
-router.delete('/:id', (req, res) => {
-  const taskId = req.params.id;
-  tasks = tasks.filter(task => task.id !== taskId);
-  res.json({ message: 'Tarea eliminada exitosamente' });
+router.put('/:id', validateTaskData, (req, res) => {
+  const id = req.params.id;
+  const { description, completed } = req.body;
+  const index = tasks.findIndex(task => task.id === id);
+  if (index !== -1) {
+    tasks[index] = { ...tasks[index], description, completed };
+    res.json(tasks[index]);
+  } else {
+    res.status(404).json({ error: 'Tarea no encontrada' });
+  }
 });
 
-router.put('/:id', (req, res) => {
-  const taskId = req.params.id;
-  const { description, completed } = req.body;
-
-  tasks = tasks.map(task =>
-    task.id === taskId ? { ...task, description, completed } : task
-  );
-
-  res.json({ message: 'Tarea actualizada exitosamente' });
+router.delete('/:id', (req, res) => {
+  const id = req.params.id;
+  tasks = tasks.filter(task => task.id !== id);
+  res.json({ message: 'Tarea eliminada exitosamente' });
 });
 
 module.exports = router;

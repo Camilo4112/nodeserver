@@ -1,29 +1,19 @@
-const http = require('http');
+const express = require('express');
+const app = express();
 
 const tasks = [
   {
-    id: 1,
-    description: 'Hacer la compra',
-    completed: false
-  },
-  {
-    id: 2,
-    description: 'Lavar el auto',
-    completed: true
-  },
-  {
-    id: 3,
-    description: 'Estudiar para el examen',
-    completed: false
+    id: '123456',
+    description: 'Walk the dog',
+    isCompleted: false
   }
 ];
 
-const server = http.createServer((req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify(tasks));
+app.get('/tasks', (req, res) => {
+  res.json(tasks);
 });
 
 const port = 3000;
-server.listen(port, () => {
+app.listen(port, () => {
   console.log(`Servidor iniciado en el puerto ${port}`);
 });

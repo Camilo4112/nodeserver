@@ -1,57 +1,103 @@
 const express = require('express');
 const app = express();
-const jwt = require('jsonwebtoken');
 
 app.use(express.json());
 
-const users = [
+const tasks = [
   {
     id: 1,
-    username: 'usuario1',
-    password: 'contrasena1'
+    description: 'Hacer la compra',
+    completed: false
   },
   {
     id: 2,
-    username: 'usuario2',
-    password: 'contrasena2'
+    description: 'Lavar el auto',
+    completed: true
+  },
+  {
+    id: 3,
+    description: 'Estudiar para el examen',
+    completed: false
   }
 ];
 
-const jwtSecret = process.env.JWT_SECRET || 'mysecretpassword';
-
-const generateToken = (user) => {
-  return jwt.sign({ id: user.id, username: user.username }, jwtSecret, { expiresIn: '1h' });
-};
-
-const authenticateToken = (req, res, next) => {
-  const token = req.header('Authorization');
-  if (!token) {
-    return res.status(401).json({ error: 'Token no proporcionado' });
-  }
-
-  jwt.verify(token, jwtSecret, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Token inválido' });
-    }
-    req.user = user;
-    next();
-  });
-};
-
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  const user = users.find(user => user.username === username && user.password === password);
-
-  if (!user) {
-    return res.status(401).json({ error: 'Credenciales inválidas' });
-  }
-
-  const token = generateToken(user);
-  res.json({ token });
+// Obtener todas las tareas
+app.get('/tasks', (req, res) => {
+  res.status(200).json(tasks);
 });
 
-app.get('/protected', authenticateToken, (req, res) => {
-  res.json({ message: 'Ruta protegida alcanzada', user: req.user });
+// Obtener una sola tarea por su ID
+app.get('/tasks/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const task = tasks.find(task => task.id === id);
+
+  if (task) {
+    res.status(200).json(task);
+  } else {
+    res.status(404).json({ error: 'Tarea no encontrada' });
+  }
+});
+
+// Crear una nueva tarea
+app.post('/tasks', (req, res) => {
+  const { description, completed } = req.body;
+
+  if (!description || typeof completed !== 'boolean') {
+    return res.status(400).json({ error: 'Datos de tarea no válidos' });
+  }
+
+  const newTask = {
+    id: tasks.length + 1,
+    description,
+    completed
+  };
+
+  tasks.push(newTask);
+  res.status(201).json(newTask);
+});
+
+// Actualizar una tarea existente
+app.put('/tasks/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const { description, completed } = req.body;
+
+  if (!description || typeof completed !== 'boolean') {
+    return res.status(400).json({ error: 'Datos de tarea no válidos' });
+  }
+
+  const index = tasks.findIndex(task => task.id === id);
+
+  if (index !== -1) {
+    tasks[index] = { ...tasks[index], description, completed };
+    res.status(200).json(tasks[index]);
+  } else {
+    res.status(404).json({ error: 'Tarea no encontrada' });
+  }
+});
+
+// Eliminar una tarea
+app.delete('/tasks/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = tasks.findIndex(task => task.id === id);
+
+  if (index !== -1) {
+    tasks.splice(index, 1);
+    res.status(200).json({ message: 'Tarea eliminada exitosamente' });
+  } else {
+    res.status(404).json({ error: 'Tarea no encontrada' });
+  }
+});
+
+// Obtener tareas completas
+app.get('/tasks/completed', (req, res) => {
+  const completedTasks = tasks.filter(task => task.completed);
+  res.status(200).json(completedTasks);
+});
+
+// Obtener tareas incompletas
+app.get('/tasks/incomplete', (req, res) => {
+  const incompleteTasks = tasks.filter(task => !task.completed);
+  res.status(200).json(incompleteTasks);
 });
 
 const port = 3000;
